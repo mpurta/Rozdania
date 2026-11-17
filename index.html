@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Twoja ręka</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one screen, no scrolling. Top line: seat, deal number, compass on the right. Then the hand fills the rest:
+   one row per suit, cards overlapping like a held hand, sized by script to the space left. */
+:root {
+  --bg: #e7ece9;
+  --surface: #ffffff;
+  --fg: #16201b;
+  --muted: #5b6a62;
+  --line: #ccd6d0;
+  --face: #ffffff;
+  --face-edge: #b9c4be;
+  --spade: #111111;
+  --heart: #d1141a;
+  --diamond: #c25a00;
+  --club: #006b2d;
+  --vul: #c42a2e;
+  --safe: #33874c;
+  --seat-n: #1f6ed9;
+  --seat-e: #d97300;
+  --seat-s: #7a40c4;
+  --seat-w: #0a8787;
+  --on-seat: #ffffff;
+  --dealer-bg: #ffd60a;
+  --dealer-fg: #1a1400;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --cw: 60px; --ch: 84px; --strip: 30px; --rank: 22px;  /* card size, set by script */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1814; --surface: #17241e; --fg: #e9f1ec; --muted: #9fb2a7; --line: #2a3d33;
+    --face: #f7f8f6; --face-edge: #0a110d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1814; --surface: #17241e; --fg: #e9f1ec; --muted: #9fb2a7; --line: #2a3d33;
+  --face: #f7f8f6; --face-edge: #0a110d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); overflow: hidden;
+  font-family: var(--font-body); font-size: 16px; line-height: 1.4;
+  padding-left: max(14px, env(safe-area-inset-left, 0px));
+  padding-right: max(14px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 12px;
+}
+main { height: 100%; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+
+/* top line */
+.head { display: flex; align-items: center; gap: 12px; flex: none; }
+.seat {
+  flex: none; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  font: 800 2rem/1 var(--font-display); color: var(--on-seat); background: var(--seat-n);
+}
+.seat[data-seat="E"] { background: var(--seat-e); }
+.seat[data-seat="S"] { background: var(--seat-s); }
+.seat[data-seat="W"] { background: var(--seat-w); }
+.head-text { min-width: 0; flex: 1; }
+h1 { margin: 0; font: 800 1.55rem/1.1 var(--font-display); letter-spacing: -0.01em; }
+.head-text p { font-size: 0.95rem; font-weight: 600; margin-top: 3px; }
+/* "Ty rozdajesz": a yellow tag, kept apart from the seat colours and the red/green of the compass */
+.head-text p.dealer {
+  display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 8px;
+  background: var(--dealer-bg); color: var(--dealer-fg); font: 800 1.15rem/1.1 var(--font-display);
+}
+
+/* compass as in Deal Selector */
+.compass-wrap { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.compass {
+  width: 116px; height: 116px; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); place-items: center;
+}
+.chip {
+  position: relative; width: 31px; height: 31px; border-radius: 6px; display: grid; place-items: center;
+  font: 700 0.95rem/1 var(--font-display); color: var(--on-seat); background: var(--safe);
+  outline: 2px solid transparent; outline-offset: 2px;
+}
+.chip.vul { background: var(--vul); }
+.chip.dealer { outline-color: var(--fg); }
+.chip.you::after { content: "Ty"; position: absolute; font: 700 0.66rem/1 var(--font-body); color: var(--fg); }
+.chip[data-seat="N"] { grid-area: 1 / 2; } .chip[data-seat="W"] { grid-area: 2 / 1; }
+.chip[data-seat="E"] { grid-area: 2 / 3; } .chip[data-seat="S"] { grid-area: 3 / 2; }
+.chip[data-seat="N"].you::after { top: calc(100% + 4px); left: 50%; transform: translateX(-50%); }
+.chip[data-seat="S"].you::after { bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); }
+.chip[data-seat="W"].you::after { left: calc(100% + 4px); top: 50%; transform: translateY(-50%); }
+.chip[data-seat="E"].you::after { right: calc(100% + 4px); top: 50%; transform: translateY(-50%); }
+.legend { display: flex; gap: 6px; font-size: 0.68rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 2px; }
+.legend i { width: 7px; height: 7px; border-radius: 2px; background: var(--safe); }
+.legend i.vul { background: var(--vul); }
+.legend i.ring { background: transparent; border: 1.5px solid var(--fg); }
+
+/* the space for the hand */
+.stage { flex: 1; min-height: 0; position: relative; }
+.curtain {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; text-align: center; padding: 20px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+}
+.backs { display: flex; margin-bottom: 6px; }
+.backs span {
+  width: 46px; height: 64px; border-radius: 6px; margin-left: -18px; border: 2px solid var(--face);
+  background: repeating-linear-gradient(45deg, var(--seat-n) 0 5px, color-mix(in srgb, var(--seat-n) 70%, #000) 5px 10px);
+}
+.backs span:first-child { margin-left: 0; }
+button {
+  font: 600 1.05rem var(--font-body); min-height: 46px; padding: 0 20px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
+}
+button.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+button:focus-visible { outline: 3px solid var(--seat-n); outline-offset: 2px; }
+
+.hand { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-evenly; }
+.row { display: flex; height: var(--ch); padding-left: 2px; }
+.card {
+  flex: none; width: var(--cw); height: var(--ch); margin-left: calc(var(--strip) - var(--cw));
+  border-radius: calc(var(--cw) * 0.1); background: var(--face); border: 1px solid var(--face-edge);
+  box-shadow: -2px 0 4px rgb(0 0 0 / 0.14);
+  display: flex; flex-direction: column; align-items: flex-start; padding: calc(var(--cw) * 0.05) 0 0 calc(var(--cw) * 0.06);
+  font-family: var(--font-display); font-weight: 800; line-height: 0.95; font-variant-numeric: tabular-nums;
+}
+.card:first-child { margin-left: 0; }
+.card .r { font-size: var(--rank); letter-spacing: -0.04em; }
+.card .r.ten { letter-spacing: -0.09em; font-size: calc(var(--rank) * 0.86); }
+.card .p { font-size: calc(var(--rank) * 0.9); }
+.void {
+  height: calc(var(--ch) * 0.4); display: flex; align-items: center; gap: 10px; padding-left: 4px;
+  font: 700 calc(var(--rank) * 0.9) var(--font-display); color: var(--muted);
+}
+.s-S { color: var(--spade); } .s-H { color: var(--heart); } .s-D { color: var(--diamond); } .s-C { color: var(--club); }
+
+.foot { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.foot strong { font: 800 1.2rem var(--font-display); font-variant-numeric: tabular-nums; }
+.label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.error { padding: 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+</style>
+
+<main>
+  <div class="head">
+    <div class="seat" id="seat" data-seat="N">N</div>
+    <div class="head-text">
+      <h1 id="title">Rozdanie</h1>
+      <p id="subtitle" hidden></p>
+    </div>
+    <div class="compass-wrap">
+      <div class="compass" id="compass" role="img"></div>
+      <div class="legend" aria-hidden="true"><span><i class="vul"></i>po</span><span><i></i>przed</span><span><i class="ring"></i>rozd.</span></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <section class="curtain" id="curtain">
+      <div class="backs" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <p><strong>Karty są zakryte.</strong></p>
+      <p class="muted">Odkryj je, gdy nikt nie patrzy na ekran.</p>
+      <button type="button" class="primary" id="show">Pokaż moje karty</button>
+      <p class="muted" id="note" style="font-size:0.85rem">Link pokazuje tylko Twoją rękę.</p>
+    </section>
+    <section class="hand" id="hand" hidden aria-label="Twoje karty"></section>
+    <p class="error" id="error" hidden></p>
+  </div>
+
+  <div class="foot" id="foot" hidden>
+    <span><span class="label">Punkty</span> <strong id="hcp">0</strong></span>
+    <button type="button" id="hide">Zakryj karty</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  // Link format (after "#"): h1-<board>-<seat>-<dealer>-<vul>-<spades>-<hearts>-<diamonds>-<clubs>
+  //   seat, dealer: n e s w (dealer "x" = unknown); vul: o none, ns, ew, b both
+  //   holdings in PBN letters, e.g. akt93 (t = ten), "x" = void.  Example: #h1-12-s-n-ew-akt93-q72-x-j8654
+  var SEATS = { n: "N", e: "E", s: "S", w: "W" };
+  var SEAT_NAMES = { N: "North", E: "East", S: "South", W: "West" };
+  var SUITS = [["S", "♠"], ["H", "♥"], ["D", "♦"], ["C", "♣"]];
+  var ORDER = "AKQJT98765432";
+  var HCP = { A: 4, K: 3, Q: 2, J: 1 };
+  var EXAMPLE = "h1-12-s-n-ew-akt93-q72-x-j8654";
+  var current = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function parse(hash) {
+    var parts = hash.replace(/^#/, "").toLowerCase().split("-");
+    if (parts.length !== 9 || parts[0] !== "h1") return null;
+    var seat = SEATS[parts[2]];
+    if (!seat || !/^[a-z0-9]{1,8}$/.test(parts[1])) return null;
+    var suits = parts.slice(5).map(function (h) { return h === "x" ? "" : h.toUpperCase(); });
+    var count = 0, seen = {};
+    for (var i = 0; i < 4; i++) {
+      for (var j = 0; j < suits[i].length; j++) {
+        var r = suits[i][j];
+        if (ORDER.indexOf(r) < 0 || seen[i + r]) return null;
+        seen[i + r] = true;
+        count++;
+      }
+      suits[i] = suits[i].split("").sort(function (a, b) { return ORDER.indexOf(a) - ORDER.indexOf(b); }).join("");
+    }
+    if (count !== 13) return null;
+    return {
+      board: parts[1].toUpperCase(), seat: seat, dealer: SEATS[parts[3]] || "",
+      vul: { o: "", ns: "NS", ew: "EW", b: "NSEW" }[parts[4]], suits: suits,
+    };
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function render(deal, example) {
+    current = deal;
+    $("seat").textContent = deal.seat;
+    $("seat").dataset.seat = deal.seat;
+    $("title").textContent = "Rozdanie " + deal.board;
+    // under the deal number only when this player deals (and "Przykład" on the example hand)
+    var line = [];
+    if (example) line.push("Przykład");
+    if (deal.dealer === deal.seat) line.push("Ty rozdajesz");
+    $("subtitle").textContent = line.join(" · ");
+    $("subtitle").classList.toggle("dealer", deal.dealer === deal.seat);
+    $("subtitle").hidden = !line.length;
+    $("seat").setAttribute("aria-label", "Twoje miejsce: " + SEAT_NAMES[deal.seat]);
+
+    // compass: red = vulnerable, green = not, ring = dealer; "Ty" marks this player
+    var compass = $("compass");
+    compass.textContent = "";
+    var spoken = [];
+    ["N", "W", "E", "S"].forEach(function (s) {
+      var vulnerable = (deal.vul || "").indexOf(s) >= 0;
+      var chip = el("span", "chip" + (vulnerable ? " vul" : "") + (deal.dealer === s ? " dealer" : "") + (deal.seat === s ? " you" : ""), s);
+      chip.dataset.seat = s;
+      compass.append(chip);
+      spoken.push(s + (deal.seat === s ? " (Ty)" : "") + (deal.dealer === s ? ", rozdaje" : "") + ", " + (vulnerable ? "po partii" : "przed partią"));
+    });
+    compass.setAttribute("aria-label", "Stół: " + spoken.join("; "));
+
+    var hand = $("hand");
+    hand.textContent = "";
+    var hcp = 0;
+    SUITS.forEach(function (s, i) {
+      var holding = deal.suits[i];
+      if (!holding) {
+        var none = el("div", "void");
+        none.append(el("span", "s-" + s[0], s[1]), el("span", "", "—"));
+        none.setAttribute("aria-label", s[1] + ": brak");
+        hand.append(none);
+        return;
+      }
+      var row = el("div", "row");
+      row.setAttribute("aria-label", s[1] + ": " + holding.replace(/T/g, "10").split("").join(" "));
+      holding.split("").forEach(function (r) {
+        hcp += HCP[r] || 0;
+        var card = el("span", "card s-" + s[0]);
+        card.append(el("span", "r" + (r === "T" ? " ten" : ""), r === "T" ? "10" : r), el("span", "p", s[1]));
+        row.append(card);
+      });
+      hand.append(row);
+    });
+    $("hcp").textContent = hcp;
+    if (example) $("note").textContent = "To przykładowa ręka. Link z programu Deal Selector pokaże tu Twoje karty.";
+  }
+
+  // Largest cards that fit: four rows in the height, the longest suit in the width. Cards overlap so that
+  // each shows its corner (rank and suit); the last card of a row is shown whole.
+  function size() {
+    if (!current) return;
+    var box = $("stage").getBoundingClientRect();
+    var longest = Math.max.apply(null, current.suits.map(function (h) { return h.length; }));
+    var voids = current.suits.filter(function (h) { return !h; }).length;
+    var gap = 8, ratio = 1.25, strip = 0.52;  // card height / width; visible part of an overlapped card
+    var rows = 4 - voids + voids * 0.4;  // a void takes a short line, not a card row
+    var byHeight = (box.height - gap * 3) / rows / ratio;
+    var byWidth = (box.width - 4) / (1 + (longest - 1) * strip);
+    var w = Math.max(24, Math.floor(Math.min(byHeight, byWidth)));
+    var root = document.documentElement.style;
+    root.setProperty("--cw", w + "px");
+    root.setProperty("--ch", Math.floor(w * ratio) + "px");
+    root.setProperty("--strip", Math.floor(w * strip) + "px");
+    root.setProperty("--rank", Math.floor(w * strip * 0.82) + "px");
+  }
+
+  function reveal(on) {
+    $("curtain").hidden = on;
+    $("hand").hidden = !on;
+    $("foot").hidden = !on;
+    size();
+  }
+
+  function load() {
+    var hash = location.hash;
+    var deal = hash ? parse(hash) : parse("#" + EXAMPLE);
+    $("error").hidden = true;
+    if (!deal) {
+      $("error").hidden = false;
+      $("error").textContent = "Ten link jest niepełny albo uszkodzony. Poproś o wysłanie go jeszcze raz.";
+      $("curtain").hidden = true;
+      $("hand").hidden = true;
+      $("foot").hidden = true;
+      return;
+    }
+    render(deal, !hash);
+    reveal(!hash);  // a real hand starts covered; the example is shown at once
+  }
+
+  $("show").addEventListener("click", function () { reveal(true); });
+  $("hide").addEventListener("click", function () { reveal(false); });
+  window.addEventListener("hashchange", load);
+  window.addEventListener("resize", size);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
+  load();
+})();
+</script>
+
+</body>
+</html>
